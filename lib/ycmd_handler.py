@@ -25,16 +25,14 @@ def server(filepath=None):
     return singleton server instance and load extra configuration.
     '''
     global _server
-    print('error 1' )
     if not _server and filepath:
         # load server
-        print('load server')
         _server = YcmdHandle.StartYcmdAndReturnHandle()
         _server.WaitUntilReady()
         print(MsgTemplates.LOAD_SERVER_FINISHED.format(
               _server._server_location))
     if not _server:
-        print('error')
+        raise RuntimeError(MsgTemplates.SERVER_NOT_LOADED)
     return _server
 
 
@@ -64,14 +62,13 @@ class YcmdHandle(object):
 
     @classmethod
     def StartYcmdAndReturnHandle(cls):
-        print('StartYcmdAndReturnHandle 1')
         prepared_options = DefaultSettings()
-        print('StartYcmdAndReturnHandle 2')
+
         # generate random hmac secrete
         hmac_secret = os.urandom(HMAC_SECRET_LENGTH)
         prepared_options['hmac_secret'] = b64encode(
             hmac_secret).decode('utf-8')
-        print('StartYcmdAndReturnHandle 3')
+
         # The temp options file is deleted by ycmd during startup
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as options_file:
             json.dump(prepared_options, options_file)
@@ -192,8 +189,7 @@ class YcmdHandle(object):
 
     def _CallHttp(self, method, handler, data=''):
         method = method.upper()
-        print('uri: ' + self._BuildUri(handler) +" method: " + method)
-        req = Request(self._BuildUri(handler), method=method )
+        req = Request(self._BuildUri(handler), method=method)
         if isinstance(data, collections.Mapping):
             req.add_header('content-type', 'application/json')
             data = json.dumps(data, ensure_ascii=False)
@@ -216,7 +212,7 @@ class YcmdHandle(object):
         readData = resp.read()
         self._ValidateResponseObject(
             readData, resp.getheader(HMAC_HEADER).encode('utf-8'))
-        print(readData.decode('utf-8'))
+
         return readData.decode('utf-8')
 
     def _HmacForBody(self, request_body, to_base64=False):

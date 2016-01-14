@@ -2,40 +2,86 @@
 # linter.py
 # Linter for SublimeLinter3, a code checking framework for Sublime Text 3
 #
-# Written by admin
-# Copyright (c) 2016 admin
+# Written by Administrator
+# Copyright (c) 2016 Administrator
 #
 # License: MIT
 #
 
 """This module exports the Ycmd plugin class."""
+
 import os
-import sublime
-from SublimeLinter.lint import PythonLinter, util
+import re
+import json
+from SublimeLinter.lint import highlight, Linter, persist
 from .lib.ycmd_handler import server
-
-class Ycmd(PythonLinter):
+from .lib.utils import *
+from .lib.ycmd_events import Event
+from .lib.msgs import MsgTemplates
+from .listeners import *
+class Ycmd(Linter):
     """Provides an interface to ycmd."""
-
-    syntax = 'python'
+    syntax = ('c++', 'c', 'c improved')  # Able to handle C and C++ syntax
     cmd = None
-    executable = None
-    version_args = '--version'
-    version_re = r'(?P<version>\d+\.\d+\.\d+)'
-    version_requirement = '>= 1.0'
-    regex = r''
-    multiline = False
-    line_col_base = (1, 1)
-    tempfile_suffix = None
-    error_stream = util.STREAM_BOTH
-    selectors = {}
-    word_re = None
-    defaults = {}
-    inline_settings = None
-    inline_overrides = None
-    comment_re = None
-    module = 'ycmd'
-    check_version = False
-    def check(self, code, filename):
-        print(filename)
+    regex = '.*'  # Placeholder so that linter will activate
+
+    selectors = {
+        
+    }
+
+    defaults = {
+        '-errors:,': [],
+        '-warnings:,': []
+    }
+
+
+    # regex = r''
+    # defaults = {}
+    def run(self, cmd, code):
+        
+
+        view = active_view()
+        filepath = get_file_path(view.file_name())
+        contents = view.substr(sublime.Region(0, view.size()))
+
+        ycmd_server = server(self.filename)
+        # conf_path = find_recursive(filepath)
+        # if not conf_path:
+        #     sublime.status_message(
+        #         '[SublimeLinter-contrib-ycmd] .ycm_extra_conf.py not found. All SublimeLinter-contrib-ycmd function not avaliable.')
+        #     print('[SublimeLinter-contrib-ycmd] .ycm_extra_conf.py not found.')
+        #     return
+            
+        # ycmd_server.LoadExtraConfFile(conf_path)
+
+        data = ycmd_server.SendEventNotification(Event.FileReadyToParse,
+                                        filepath=filepath,
+                                        contents=contents,
+                                        filetype='cpp')
+        print(data)
+
+        options = {}
+
+        type_map = {
+            'errors': [],
+            'warnings': []
+        }
+
+        self.build_options(options, type_map)
+
+        problems = json.loads(data)
+        
+        for problem in problems:
+            if get_file_path(problem['location']['filepath']) == filepath:
+                lineno = problem['location']['line_num'] - 1
+                colno = problem['location']['column_num'] - 1
+                message = problem['text']
+
+                error_type = highlight.WARNING
+                if problem['kind'] == 'ERROR':
+                    error_type = highlight.ERROR
+                
+                
+                self.highlight.range(lineno, colno, error_type=error_type)
+                self.error(lineno, colno, message, error_type)
 

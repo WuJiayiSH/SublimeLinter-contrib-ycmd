@@ -95,7 +95,7 @@ class CppYCMCompletionsListener(sublime_plugin.EventListener):
             return
 
         print("[C++YouCompleteMe] Start completing.")
-
+        
         if self.ready_from_defer is True:
             cpl = self.completions
             self.completions = []

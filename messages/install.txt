@@ -7,4 +7,4 @@ This linter plugin for SublimeLinter provides an interface to ycmd.
 Before this plugin will activate, you *must*
 follow the installation instructions here:
 
-https://github.com/admin/SublimeLinter-contrib-ycmd
+https://github.com/Administrator/SublimeLinter-contrib-ycmd
